@@ -613,7 +613,7 @@ if st.button("Run Optimization", type="primary", width='stretch'):
                 fig_costs.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_costs, width='stretch')
             else:
-                # Show a simple message instead
+                
                 st.info("✅ All costs are generation costs - no penalties incurred!")
             
         
