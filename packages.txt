@@ -1,1 +1,2 @@
+libglpk-dev
 glpk-utils
