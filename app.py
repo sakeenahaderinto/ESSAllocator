@@ -217,7 +217,8 @@ def build_and_solve_model(demand_scenario_name, wind_scenario_name, ess_budget, 
     model.Pw = Var(model.bus, model.t, bounds=lambda m, bus, t: (0, WD[t]['w'] * Wcap_data[bus] / Sbase))
     model.pwc = Var(model.bus, model.t, bounds=lambda m, bus, t: (0, WD[t]['w'] * Wcap_data[bus] / Sbase))
     
-    model.NESS = Var(model.bus, bounds=(0, NBUSMAX))
+    
+    model.NESS = Var(model.bus, bounds=(0, NBUSMAX), domain=NonNegativeIntegers)
     model.SOC = Var(model.bus, model.t)
     model.Pc = Var(model.bus, model.t)
     model.Pd = Var(model.bus, model.t)
@@ -592,21 +593,29 @@ if st.button("Run Optimization", type="primary", width='stretch'):
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # Pie chart
+            # Filter out zero costs
             cost_data = pd.DataFrame({
                 'Category': ['Generation', 'Load Shedding Penalty', 'Wind Curtailment Penalty'],
                 'Cost': [results['gen_cost'], results['voll_cost'], results['curt_cost']]
             })
+
+            # Remove rows with zero or near-zero costs
+            cost_data = cost_data[cost_data['Cost'] > 0.01]
+
+            # Only show pie chart if there are multiple cost components
+            if len(cost_data) > 1:
+                fig_costs = px.pie(
+                    cost_data,
+                    values='Cost',
+                    names='Category',
+                    color_discrete_sequence=['#FF6B6B', '#FFE66D', '#4ECDC4']
+                )
+                fig_costs.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig_costs, width='stretch')
+            else:
+                # Show a simple message instead
+                st.info("✅ All costs are generation costs - no penalties incurred!")
             
-            fig_costs = px.pie(
-                cost_data,
-                values='Cost',
-                names='Category',
-                hole=0.4,
-                color_discrete_sequence=['#FF6B6B', '#FFE66D', '#4ECDC4']
-            )
-            fig_costs.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(fig_costs, width='stretch')
         
         with col2:
             st.markdown("**Cost Details:**")
@@ -614,3 +623,4 @@ if st.button("Run Optimization", type="primary", width='stretch'):
             st.write(f"⚠️ Load Shedding: £{results['voll_cost']:,.0f}")
             st.write(f"🌬️ Curtailment: £{results['curt_cost']:,.0f}")
             st.write(f"**Total: £{results['total_cost']:,.0f}**")
+
